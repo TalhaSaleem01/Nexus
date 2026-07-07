@@ -1,6 +1,7 @@
-import React from 'react';
+import { VideoCall } from './pages/videocall/VideoCall';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationListener } from './components/notifications/NotificationListener';
 
 // Layouts
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -26,6 +27,7 @@ import { DocumentsPage } from './pages/documents/DocumentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { HelpPage } from './pages/help/HelpPage';
 import { DealsPage } from './pages/deals/DealsPage';
+import { MeetingsPage } from './pages/meetings/MeetingsPage';
 
 // Chat Pages
 import { ChatPage } from './pages/chat/ChatPage';
@@ -33,6 +35,7 @@ import { ChatPage } from './pages/chat/ChatPage';
 function App() {
   return (
     <AuthProvider>
+      <NotificationListener />
       <Router>
         <Routes>
           {/* Authentication Routes */}
@@ -72,6 +75,10 @@ function App() {
             <Route index element={<DocumentsPage />} />
           </Route>
           
+          <Route path="/meetings" element={<DashboardLayout />}>
+            <Route index element={<MeetingsPage />} />
+          </Route>
+          
           <Route path="/settings" element={<DashboardLayout />}>
             <Route index element={<SettingsPage />} />
           </Route>
@@ -89,6 +96,7 @@ function App() {
             <Route index element={<ChatPage />} />
             <Route path=":userId" element={<ChatPage />} />
           </Route>
+          <Route path="/call/:roomId" element={<VideoCall />} />
           
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
