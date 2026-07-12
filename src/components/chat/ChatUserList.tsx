@@ -1,49 +1,81 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
-import { ChatConversation } from '../../types';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
-import { findUserById } from '../../data/users';
 import { useAuth } from '../../context/AuthContext';
 
-interface ChatUserListProps {
-  conversations: ChatConversation[];
+interface ConversationUser {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  role: string;
+  isOnline: boolean;
 }
+
+interface Conversation {
+  id: string;
+  participants: string[];
+  lastMessage?: {
+    senderId: string;
+    content: string;
+    timestamp: string;
+    isRead: boolean;
+  };
+  otherUser: ConversationUser | null;
+}
+
+interface ChatUserListProps {
+  conversations: Conversation[];
+}
+
+// Compact relative time, e.g. "4m", "2h", "3d" - avoids overflow in the narrow sidebar
+const shortTimeAgo = (timestamp: string): string => {
+  const full = formatDistanceToNowStrict(new Date(timestamp));
+  return full
+    .replace(' seconds', 's')
+    .replace(' second', 's')
+    .replace(' minutes', 'm')
+    .replace(' minute', 'm')
+    .replace(' hours', 'h')
+    .replace(' hour', 'h')
+    .replace(' days', 'd')
+    .replace(' day', 'd')
+    .replace(' months', 'mo')
+    .replace(' month', 'mo')
+    .replace(' years', 'y')
+    .replace(' year', 'y');
+};
 
 export const ChatUserList: React.FC<ChatUserListProps> = ({ conversations }) => {
   const navigate = useNavigate();
   const { userId: activeUserId } = useParams<{ userId: string }>();
   const { user: currentUser } = useAuth();
-  
+
   if (!currentUser) return null;
-  
+
   const handleSelectUser = (userId: string) => {
     navigate(`/chat/${userId}`);
   };
 
   return (
-    <div className="bg-white border-r border-gray-200 w-full md:w-64 overflow-y-auto">
+    <div className="bg-white border-r border-gray-200 w-full md:w-64 h-full overflow-y-auto">
       <div className="py-4">
         <h2 className="px-4 text-lg font-semibold text-gray-800 mb-4">Messages</h2>
-        
+
         <div className="space-y-1">
           {conversations.length > 0 ? (
-            conversations.map(conversation => {
-              // Get the other participant (not the current user)
-              const otherParticipantId = conversation.participants.find(id => id !== currentUser.id);
-              if (!otherParticipantId) return null;
-              
-              const otherUser = findUserById(otherParticipantId);
+            conversations.map((conversation) => {
+              const otherUser = conversation.otherUser;
               if (!otherUser) return null;
-              
+
               const lastMessage = conversation.lastMessage;
-              const isActive = activeUserId === otherParticipantId;
-              
+              const isActive = activeUserId === otherUser.id;
+
               return (
                 <div
                   key={conversation.id}
-                  className={`px-4 py-3 flex cursor-pointer transition-colors duration-200 ${
+                  className={`px-3 py-3 flex items-start cursor-pointer transition-colors duration-200 ${
                     isActive
                       ? 'bg-primary-50 border-l-4 border-primary-600'
                       : 'hover:bg-gray-50 border-l-4 border-transparent'
@@ -55,32 +87,34 @@ export const ChatUserList: React.FC<ChatUserListProps> = ({ conversations }) => 
                     alt={otherUser.name}
                     size="md"
                     status={otherUser.isOnline ? 'online' : 'offline'}
-                    className="mr-3 flex-shrink-0"
+                    className="mr-2 flex-shrink-0"
                   />
-                  
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                    <div className="flex justify-between items-start gap-1">
+                      <h3 className="text-sm font-medium text-gray-900 truncate min-w-0">
                         {otherUser.name}
                       </h3>
-                      
+
                       {lastMessage && (
-                        <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: false })}
+                        <span className="text-[11px] text-gray-500 flex-shrink-0 whitespace-nowrap mt-0.5">
+                          {shortTimeAgo(lastMessage.timestamp)}
                         </span>
                       )}
                     </div>
-                    
-                    <div className="flex justify-between items-center mt-1">
+
+                    <div className="flex justify-between items-center mt-1 gap-1">
                       {lastMessage && (
-                        <p className="text-xs text-gray-600 truncate">
+                        <p className="text-xs text-gray-600 truncate min-w-0">
                           {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
                           {lastMessage.content}
                         </p>
                       )}
-                      
+
                       {lastMessage && !lastMessage.isRead && lastMessage.senderId !== currentUser.id && (
-                        <Badge variant="primary" size="sm" rounded>New</Badge>
+                        <Badge variant="primary" size="sm" rounded className="flex-shrink-0">
+                          New
+                        </Badge>
                       )}
                     </div>
                   </div>

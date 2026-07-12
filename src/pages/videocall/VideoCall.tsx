@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Phone } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 // import { Button } from '../../components/ui/Button';
@@ -14,6 +14,8 @@ const ICE_SERVERS = {
 
 export const VideoCall: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  const [searchParams] = useSearchParams();
+  const isAudioOnly = searchParams.get('mode') === 'audio';
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -25,7 +27,7 @@ export const VideoCall: React.FC = () => {
   const remoteSocketIdRef = useRef<string | null>(null);
 
   const [isMicOn, setIsMicOn] = useState(true);
-  const [isCameraOn, setIsCameraOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(!isAudioOnly);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'waiting' | 'connected' | 'ended'>('connecting');
 
   const createPeerConnection = useCallback((targetSocketId: string) => {
@@ -64,8 +66,8 @@ export const VideoCall: React.FC = () => {
     let isMounted = true;
 
     const setup = async () => {
-      // 1. Get local camera/mic access
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // 1. Get local camera/mic access (camera skipped entirely in audio-only mode)
+      const stream = await navigator.mediaDevices.getUserMedia({ video: !isAudioOnly, audio: true });
       if (!isMounted) return;
 
       localStreamRef.current = stream;
@@ -149,7 +151,7 @@ export const VideoCall: React.FC = () => {
       socketRef.current?.emit('leave-room', { roomId });
       socketRef.current?.disconnect();
     };
-  }, [roomId, user?.name, createPeerConnection]);
+  }, [roomId, user?.name, createPeerConnection, isAudioOnly]);
 
   const toggleMic = () => {
     const audioTrack = localStreamRef.current?.getAudioTracks()[0];
@@ -189,20 +191,33 @@ export const VideoCall: React.FC = () => {
           className="w-full h-full object-cover bg-gray-800"
         />
 
+        {isAudioOnly && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+            <div className="text-center text-white">
+              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                <Phone size={40} />
+              </div>
+              <p className="text-lg">Voice call in progress...</p>
+            </div>
+          </div>
+        )}
+
         {connectionStatus === 'waiting' && (
-          <div className="absolute inset-0 flex items-center justify-center text-white text-lg">
+          <div className="absolute inset-0 flex items-center justify-center text-white text-lg bg-black bg-opacity-40">
             Waiting for the other person to join...
           </div>
         )}
 
-        {/* Local video - small overlay */}
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute bottom-24 right-4 w-40 h-28 rounded-lg object-cover border-2 border-white shadow-lg bg-gray-700"
-        />
+        {/* Local video - small overlay (hidden entirely in audio-only mode) */}
+        {!isAudioOnly && (
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute bottom-24 right-4 w-40 h-28 rounded-lg object-cover border-2 border-white shadow-lg bg-gray-700"
+          />
+        )}
       </div>
 
       {/* Controls */}
@@ -214,12 +229,14 @@ export const VideoCall: React.FC = () => {
           {isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
         </button>
 
-        <button
-          onClick={toggleCamera}
-          className={`p-4 rounded-full ${isCameraOn ? 'bg-gray-700' : 'bg-red-600'} text-white`}
-        >
-          {isCameraOn ? <Video size={20} /> : <VideoOff size={20} />}
-        </button>
+        {!isAudioOnly && (
+          <button
+            onClick={toggleCamera}
+            className={`p-4 rounded-full ${isCameraOn ? 'bg-gray-700' : 'bg-red-600'} text-white`}
+          >
+            {isCameraOn ? <Video size={20} /> : <VideoOff size={20} />}
+          </button>
+        )}
 
         <button
           onClick={endCall}

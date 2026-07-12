@@ -10,6 +10,7 @@ import userRoutes from "./routes/userRoutes.js";
 import meetingRoutes from "./routes/meetingRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import initSignaling from "./socket/signaling.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

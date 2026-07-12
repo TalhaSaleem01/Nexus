@@ -3,6 +3,7 @@ import StartupHistory from "./StartupHistory.js";
 import InvestmentHistory from "./InvestmentHistory.js";
 import Meeting from "./Meeting.js";
 import Document from "./Document.js";
+import ChatMessage from "./ChatMessage.js";
 
 User.hasMany(StartupHistory, {
   foreignKey: "userId",
@@ -23,8 +24,13 @@ User.hasMany(Meeting, { foreignKey: "recipientId", as: "meetingsReceived" });
 Meeting.belongsTo(User, { foreignKey: "requesterId", as: "requester" });
 Meeting.belongsTo(User, { foreignKey: "recipientId", as: "recipient" });
 
-// Documents: uploaded by a user
 User.hasMany(Document, { foreignKey: "uploadedBy", as: "documents" });
 Document.belongsTo(User, { foreignKey: "uploadedBy", as: "uploader" });
 
-export { User, StartupHistory, InvestmentHistory, Meeting, Document };
+// Chat messages: sender -> receiver
+User.hasMany(ChatMessage, { foreignKey: "senderId", as: "sentMessages" });
+User.hasMany(ChatMessage, { foreignKey: "receiverId", as: "receivedMessages" });
+ChatMessage.belongsTo(User, { foreignKey: "senderId", as: "sender" });
+ChatMessage.belongsTo(User, { foreignKey: "receiverId", as: "receiver" });
+
+export { User, StartupHistory, InvestmentHistory, Meeting, Document, ChatMessage };
